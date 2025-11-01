@@ -142,11 +142,19 @@ const Home = () => {
 
   const handleInteraction = () => {
     if (audioRef.current && audioRef.current.paused) {
-      audioRef.current.play();
+      audioRef.current.play().catch(e => console.log('Audio play error:', e));
     }
     if (videoRef.current && videoRef.current.paused) {
-      videoRef.current.play();
+      videoRef.current.play().catch(e => console.log('Video play error:', e));
     }
+  };
+
+  const handleVideoError = (e) => {
+    console.error('Video error:', e.target.error);
+  };
+
+  const handleVideoLoaded = () => {
+    console.log('Video loaded successfully');
   };
 
   return (
