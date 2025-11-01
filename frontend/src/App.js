@@ -91,20 +91,38 @@ const Home = () => {
           const draw = () => {
             animationRef.current = requestAnimationFrame(draw);
 
-            analyser.getByteFrequencyData(dataArray);
+            // Check if we can use real audio data or need to use fake data
+            const canUseRealAudio = audioContext.state === 'running' && !audio.paused;
+
+            if (canUseRealAudio) {
+              // Use REAL audio frequency data
+              analyser.getByteFrequencyData(dataArray);
+            } else {
+              // Generate FAKE/simulated audio data for smooth animation
+              // Use sine waves with some randomness for natural-looking movement
+              const time = Date.now() / 1000; // time in seconds
+              for (let i = 0; i < bufferLength; i++) {
+                // Combine multiple sine waves for more natural variation
+                const wave1 = Math.sin(time * 2 + i * 0.1) * 40;
+                const wave2 = Math.sin(time * 3.5 + i * 0.05) * 30;
+                const wave3 = Math.sin(time * 1.2 + i * 0.15) * 25;
+                const noise = Math.random() * 15;
+
+                // Base level + waves + noise (range: ~50-140)
+                dataArray[i] = Math.max(0, Math.min(255, 70 + wave1 + wave2 + wave3 + noise));
+              }
+            }
 
             // Log every 60 frames (roughly once per second) for debugging
             if (frameCount % 60 === 0) {
               const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
               const max = Math.max(...dataArray);
-              const audioPaused = audio.paused;
-              const contextState = audioContext.state;
               console.log(`Frame ${frameCount}:`, {
                 avgFreq: avg.toFixed(2),
                 maxFreq: max,
                 soundOn: isSoundOnRef.current,
-                audioPaused,
-                contextState
+                usingRealAudio: canUseRealAudio,
+                contextState: audioContext.state
               });
             }
             frameCount++;
