@@ -145,9 +145,9 @@ const Home = () => {
 
   const handleTurnSoundOn = async () => {
     try {
-      // Play audio file for waves
+      // Unmute audio for waves
       if (audioRef.current) {
-        await audioRef.current.play();
+        audioRef.current.muted = false;
       }
       
       // Unmute and play video
