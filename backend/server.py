@@ -77,7 +77,7 @@ async def get_status_checks():
 @api_router.get("/audio")
 async def get_audio():
     """Serve the audio file"""
-    audio_path = MEDIA_DIR / 'sample_audio.mp3'
+    audio_path = MEDIA_DIR / 'user_audio.mp3'
     if audio_path.exists():
         return FileResponse(audio_path, media_type='audio/mpeg')
     return {"error": "Audio file not found"}
