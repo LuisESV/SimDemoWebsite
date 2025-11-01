@@ -189,6 +189,7 @@ const Home = () => {
           <div className="audio-overlay" data-testid="audio-overlay">
             <h1 className="audio-title" data-testid="audio-title">Sound Waves</h1>
           </div>
+          <audio ref={audioRef} data-testid="audio-element"></audio>
         </div>
       </div>
     </div>
