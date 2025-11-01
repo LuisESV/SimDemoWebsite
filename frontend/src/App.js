@@ -165,6 +165,7 @@ const Home = () => {
           <video
             ref={videoRef}
             className="video-player"
+            src={`${API}/video`}
             autoPlay
             loop
             muted
@@ -173,7 +174,6 @@ const Home = () => {
             onLoadedData={handleVideoLoaded}
             data-testid="video-player"
           >
-            <source src={`${API}/video`} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
           <div className="video-overlay" data-testid="video-overlay">
