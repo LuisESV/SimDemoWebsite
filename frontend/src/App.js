@@ -11,6 +11,8 @@ const Home = () => {
   const videoRef = useRef(null);
   const animationRef = useRef(null);
   const analyserRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const sourceNodeRef = useRef(null);
   const [isAudioLoaded, setIsAudioLoaded] = useState(false);
 
   useEffect(() => {
@@ -20,6 +22,9 @@ const Home = () => {
         const canvas = canvasRef.current;
         
         if (!audio || !canvas) return;
+        
+        // Prevent duplicate initialization
+        if (audioContextRef.current) return;
 
         // Wait for audio to be ready
         audio.crossOrigin = "anonymous";
@@ -27,10 +32,14 @@ const Home = () => {
         
         // Create audio context
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = audioContext;
+        
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 512;
         
         const source = audioContext.createMediaElementSource(audio);
+        sourceNodeRef.current = source;
+        
         source.connect(analyser);
         analyser.connect(audioContext.destination);
         
