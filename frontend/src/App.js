@@ -131,17 +131,15 @@ const Home = () => {
 
   const handleTurnSoundOn = async () => {
     try {
-      // Play audio file
+      // Play audio file for waves
       if (audioRef.current) {
         await audioRef.current.play();
       }
       
-      // Unmute YouTube video via postMessage
-      if (iframeRef.current) {
-        iframeRef.current.contentWindow.postMessage(
-          '{"event":"command","func":"unMute","args":""}',
-          '*'
-        );
+      // Unmute and play video
+      if (videoRef.current) {
+        videoRef.current.muted = false;
+        await videoRef.current.play();
       }
       
       setIsSoundOn(true);
