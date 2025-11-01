@@ -125,6 +125,7 @@ const Home = () => {
     initAudioVisualization();
 
     return () => {
+      isMounted = false;
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
