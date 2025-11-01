@@ -21,7 +21,6 @@ body, html {
 .landing-container {
   width: 100%;
   height: 100vh;
-  cursor: pointer;
   position: relative;
   background: #000;
 }
@@ -38,6 +37,9 @@ body, html {
   position: relative;
   overflow: hidden;
   background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .audio-section {
@@ -48,55 +50,11 @@ body, html {
   min-height: 250px;
 }
 
-/* Video Section */
-.video-player {
+/* YouTube Video */
+.youtube-player {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  background: #000;
-}
-
-.play-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(5px);
-}
-
-.play-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  cursor: pointer;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.play-button p {
-  color: white;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  opacity: 0.9;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.8;
-  }
+  border: none;
 }
 
 /* Audio Section */
@@ -162,10 +120,6 @@ body, html {
   
   .audio-title {
     font-size: 2rem;
-  }
-  
-  .play-button p {
-    font-size: 1.2rem;
   }
 }
 
