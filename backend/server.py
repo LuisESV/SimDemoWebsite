@@ -83,12 +83,43 @@ async def get_audio():
     return {"error": "Audio file not found"}
 
 @api_router.get("/video")
-async def get_video():
-    """Serve the video file"""
+async def get_video(request: Request):
+    """Serve the video file with range request support"""
     video_path = MEDIA_DIR / 'sample_video.mp4'
-    if video_path.exists():
-        return FileResponse(video_path, media_type='video/mp4')
-    return {"error": "Video file not found"}
+    
+    if not video_path.exists():
+        return {"error": "Video file not found"}
+    
+    file_size = video_path.stat().st_size
+    range_header = request.headers.get('range')
+    
+    if range_header:
+        # Parse range header
+        byte_range = range_header.replace('bytes=', '').split('-')
+        start = int(byte_range[0])
+        end = int(byte_range[1]) if byte_range[1] else file_size - 1
+        chunk_size = end - start + 1
+        
+        def iterfile():
+            with open(video_path, 'rb') as f:
+                f.seek(start)
+                remaining = chunk_size
+                while remaining:
+                    chunk = f.read(min(8192, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+        
+        headers = {
+            'Content-Range': f'bytes {start}-{end}/{file_size}',
+            'Accept-Ranges': 'bytes',
+            'Content-Length': str(chunk_size),
+            'Content-Type': 'video/mp4',
+        }
+        return StreamingResponse(iterfile(), status_code=206, headers=headers)
+    
+    return FileResponse(video_path, media_type='video/mp4')
 
 # Include the router in the main app
 app.include_router(api_router)
