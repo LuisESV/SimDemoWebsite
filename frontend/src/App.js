@@ -29,7 +29,7 @@ const Home = () => {
 
         // Wait for audio to be ready
         audio.crossOrigin = "anonymous";
-        audio.src = `${API}/audio`;
+        audio.src = `${MEDIA_URL}/sample_audio.mp3`;
         
         // Create audio context
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
