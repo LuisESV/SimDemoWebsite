@@ -15,12 +15,13 @@ const Home = () => {
   const [isSoundOn, setIsSoundOn] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const initAudioVisualization = async () => {
       try {
         const audio = audioRef.current;
         const canvas = canvasRef.current;
         
-        if (!audio || !canvas) return;
+        if (!audio || !canvas || !isMounted) return;
         
         // Prevent duplicate initialization
         if (audioContextRef.current) return;
@@ -31,7 +32,9 @@ const Home = () => {
         audio.loop = true;
 
         // Wait for audio to be ready
-        audio.addEventListener('canplay', () => {
+        const handleCanPlay = () => {
+          if (!isMounted) return;
+          
           // Create audio context and analyzer
           const audioContext = new (window.AudioContext || window.webkitAudioContext)();
           audioContextRef.current = audioContext;
