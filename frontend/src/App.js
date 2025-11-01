@@ -143,7 +143,7 @@ const Home = () => {
           <video
             ref={videoRef}
             className="video-player"
-            src={`${MEDIA_URL}/final_video.mp4`}
+            src={`${BACKEND_URL}/api/video`}
             autoPlay
             loop
             muted
