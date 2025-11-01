@@ -12,6 +12,7 @@ const Home = () => {
   const animationRef = useRef(null);
   const analyserRef = useRef(null);
   const audioContextRef = useRef(null);
+  const isSoundOnRef = useRef(false); // Ref for draw function to access current state
   const [isSoundOn, setIsSoundOn] = useState(false);
 
   useEffect(() => {
@@ -85,7 +86,8 @@ const Home = () => {
             canvasCtx.fillRect(0, 0, width, height);
             
             // Scale factor: smaller when muted, larger when sound is on
-            const scaleFactor = isSoundOn ? 0.7 : 0.3;
+            // Use ref instead of state to avoid closure issues
+            const scaleFactor = isSoundOnRef.current ? 0.7 : 0.3;
             
             // Draw audio waves
             const barWidth = (width / bufferLength) * 2.5;
@@ -153,17 +155,17 @@ const Home = () => {
 
   const handleTurnSoundOn = async () => {
     try {
-      // Unmute audio for waves
-      if (audioRef.current) {
-        audioRef.current.muted = false;
-      }
-      
-      // Unmute and play video
+      // NOTE: audioRef (MP3) stays muted - it's only used for visualization
+      // We only unmute the video to hear the actual sound
+
+      // Unmute and play video (this is the only audible sound)
       if (videoRef.current) {
         videoRef.current.muted = false;
         await videoRef.current.play();
       }
-      
+
+      // Update both state (for UI) and ref (for draw function to grow waves)
+      isSoundOnRef.current = true;
       setIsSoundOn(true);
     } catch (error) {
       console.error('Error turning sound on:', error);
