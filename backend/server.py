@@ -1,4 +1,6 @@
 from fastapi import FastAPI, APIRouter
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -25,6 +27,12 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Create media directory
+MEDIA_DIR = ROOT_DIR / 'media'
+MEDIA_DIR.mkdir(exist_ok=True)
+
+# Mount static files for media
+app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 
 # Define Models
 class StatusCheck(BaseModel):
@@ -65,6 +73,22 @@ async def get_status_checks():
             check['timestamp'] = datetime.fromisoformat(check['timestamp'])
     
     return status_checks
+
+@api_router.get("/audio")
+async def get_audio():
+    """Serve the audio file"""
+    audio_path = MEDIA_DIR / 'sample_audio.mp3'
+    if audio_path.exists():
+        return FileResponse(audio_path, media_type='audio/mpeg')
+    return {"error": "Audio file not found"}
+
+@api_router.get("/video")
+async def get_video():
+    """Serve the video file"""
+    video_path = MEDIA_DIR / 'sample_video.mp4'
+    if video_path.exists():
+        return FileResponse(video_path, media_type='video/mp4')
+    return {"error": "Video file not found"}
 
 # Include the router in the main app
 app.include_router(api_router)
