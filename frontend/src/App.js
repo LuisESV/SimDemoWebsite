@@ -26,7 +26,8 @@ const Home = () => {
         if (audioContextRef.current) return;
 
         // Set up audio source
-        audio.src = `${MEDIA_URL}/user_audio.mp3`;
+        const API = `${BACKEND_URL}/api`;
+        audio.src = `${API}/audio`;
         audio.loop = true;
 
         // Create audio context and analyzer
