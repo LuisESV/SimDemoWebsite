@@ -169,6 +169,8 @@ const Home = () => {
             loop
             muted
             playsInline
+            onError={handleVideoError}
+            onLoadedData={handleVideoLoaded}
             data-testid="video-player"
           >
             <source src={`${API}/video`} type="video/mp4" />
