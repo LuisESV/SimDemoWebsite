@@ -80,3 +80,7 @@ agenthub/agents/youtube/db
 android-sdk/ backend/media/sample_video.mp4
 backend/media/sample_video.mp4
 backend/media/user_video.mov
+-e 
+# Environment files
+*.env
+*.env.*
