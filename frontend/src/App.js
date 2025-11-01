@@ -37,8 +37,16 @@ const Home = () => {
         const handleCanPlay = () => {
           if (!isMounted) return;
           
-          // Start playing immediately (muted)
-          audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+          // Start playing immediately (muted) - try autoplay
+          audio.play().catch(e => {
+            console.log('Autoplay prevented, will play on first interaction');
+            // If autoplay fails, play on first user interaction
+            const playOnInteraction = () => {
+              audio.play();
+              document.removeEventListener('click', playOnInteraction);
+            };
+            document.addEventListener('click', playOnInteraction);
+          });
           
           // Create audio context and analyzer
           const audioContext = new (window.AudioContext || window.webkitAudioContext)();
