@@ -96,7 +96,16 @@ const Home = () => {
             // Log every 60 frames (roughly once per second) for debugging
             if (frameCount % 60 === 0) {
               const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-              console.log(`Frame ${frameCount}: avg frequency = ${avg.toFixed(2)}, soundOn = ${isSoundOnRef.current}`);
+              const max = Math.max(...dataArray);
+              const audioPaused = audio.paused;
+              const contextState = audioContext.state;
+              console.log(`Frame ${frameCount}:`, {
+                avgFreq: avg.toFixed(2),
+                maxFreq: max,
+                soundOn: isSoundOnRef.current,
+                audioPaused,
+                contextState
+              });
             }
             frameCount++;
             
@@ -190,9 +199,21 @@ const Home = () => {
       }
 
       // Start MP3 audio if not already playing (muted, for visualization only)
-      if (audioRef.current && audioRef.current.paused) {
-        await audioRef.current.play();
-        console.log('🎵 MP3 audio started (muted) for visualization');
+      if (audioRef.current) {
+        console.log('🎵 MP3 audio state:', {
+          paused: audioRef.current.paused,
+          muted: audioRef.current.muted,
+          currentTime: audioRef.current.currentTime,
+          duration: audioRef.current.duration,
+          src: audioRef.current.src
+        });
+
+        if (audioRef.current.paused) {
+          await audioRef.current.play();
+          console.log('🎵 MP3 audio started (muted) for visualization');
+        } else {
+          console.log('🎵 MP3 audio already playing');
+        }
       }
 
       // Unmute and play video (this is the only audible sound)
