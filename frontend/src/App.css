@@ -26,32 +26,86 @@ body, html {
   background: #000;
 }
 
-.split-screen {
+.top-bottom-layout {
   display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
 }
 
-.video-section,
+.video-section {
+  flex: 2;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
 .audio-section {
   flex: 1;
   position: relative;
   overflow: hidden;
+  background: #000;
+  min-height: 250px;
 }
 
 /* Video Section */
-.video-section {
+.video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   background: #000;
 }
 
-.video-canvas,
+.play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+}
+
+.play-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.play-button p {
+  color: white;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  opacity: 0.9;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+/* Audio Section */
 .audio-canvas {
   width: 100%;
   height: 100%;
   display: block;
 }
 
-.video-overlay,
 .audio-overlay {
   position: absolute;
   top: 0;
@@ -66,44 +120,9 @@ body, html {
   z-index: 10;
 }
 
-.video-title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 4rem;
-  font-weight: 700;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  text-shadow: 
-    0 0 20px rgba(255, 100, 200, 0.6),
-    0 0 40px rgba(255, 100, 200, 0.4),
-    0 0 60px rgba(255, 100, 200, 0.2);
-  animation: titlePulse 3s ease-in-out infinite;
-}
-
-@keyframes titlePulse {
-  0%, 100% {
-    text-shadow: 
-      0 0 20px rgba(255, 100, 200, 0.6),
-      0 0 40px rgba(255, 100, 200, 0.4),
-      0 0 60px rgba(255, 100, 200, 0.2);
-  }
-  50% {
-    text-shadow: 
-      0 0 30px rgba(255, 100, 200, 0.8),
-      0 0 60px rgba(255, 100, 200, 0.6),
-      0 0 90px rgba(255, 100, 200, 0.4);
-  }
-}
-
-/* Audio Section */
-.audio-section {
-  background: #000;
-  position: relative;
-}
-
 .audio-title {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 4rem;
+  font-size: 3rem;
   font-weight: 700;
   color: transparent;
   background: linear-gradient(
@@ -130,43 +149,28 @@ body, html {
   }
 }
 
-.audio-hint {
-  margin-top: 2rem;
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  animation: hintBlink 2s ease-in-out infinite;
-}
-
-@keyframes hintBlink {
-  0%, 100% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 0.3;
-  }
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
-  .split-screen {
-    flex-direction: column;
+  .video-section {
+    flex: 1.5;
   }
   
-  .video-title,
+  .audio-section {
+    flex: 1;
+    min-height: 200px;
+  }
+  
   .audio-title {
-    font-size: 2.5rem;
+    font-size: 2rem;
   }
   
-  .audio-hint {
-    font-size: 1rem;
+  .play-button p {
+    font-size: 1.2rem;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1200px) {
-  .video-title,
   .audio-title {
-    font-size: 3rem;
+    font-size: 2.5rem;
   }
 }
