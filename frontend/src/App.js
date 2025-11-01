@@ -26,14 +26,19 @@ const Home = () => {
         // Prevent duplicate initialization
         if (audioContextRef.current) return;
 
-        // Set up audio source
+        // Set up audio source - MUTED initially but playing
         const API = `${BACKEND_URL}/api`;
         audio.src = `${API}/audio`;
         audio.loop = true;
+        audio.muted = true; // Muted but still playing for visualization
+        audio.volume = 1.0;
 
         // Wait for audio to be ready
         const handleCanPlay = () => {
           if (!isMounted) return;
+          
+          // Start playing immediately (muted)
+          audio.play().catch(e => console.log('Audio autoplay prevented:', e));
           
           // Create audio context and analyzer
           const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -71,12 +76,15 @@ const Home = () => {
             canvasCtx.fillStyle = gradient;
             canvasCtx.fillRect(0, 0, width, height);
             
+            // Scale factor: smaller when muted, larger when sound is on
+            const scaleFactor = isSoundOn ? 0.7 : 0.3;
+            
             // Draw audio waves
             const barWidth = (width / bufferLength) * 2.5;
             let x = 0;
             
             for (let i = 0; i < bufferLength; i++) {
-              const barHeight = (dataArray[i] / 255) * (height * 0.7);
+              const barHeight = (dataArray[i] / 255) * (height * scaleFactor);
               
               const hue = (i / bufferLength) * 360;
               const barGradient = canvasCtx.createLinearGradient(0, height - barHeight, 0, height);
@@ -96,7 +104,7 @@ const Home = () => {
             
             // Draw center circle pulse
             const avgFrequency = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
-            const pulseRadius = (avgFrequency / 255) * 120 + 40;
+            const pulseRadius = (avgFrequency / 255) * 120 * scaleFactor + 40;
             
             const circleGradient = canvasCtx.createRadialGradient(
               width / 2, height / 2, 0,
