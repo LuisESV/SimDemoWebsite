@@ -134,6 +134,9 @@ const Home = () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
     };
   }, []);
 
