@@ -8,7 +8,7 @@ const MEDIA_URL = `${BACKEND_URL}/media`;
 const Home = () => {
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
-  const iframeRef = useRef(null);
+  const videoRef = useRef(null);
   const animationRef = useRef(null);
   const analyserRef = useRef(null);
   const audioContextRef = useRef(null);
