@@ -37,30 +37,40 @@ const Home = () => {
         // Wait for audio to be ready
         const handleCanPlay = () => {
           if (!isMounted) return;
-          
+
+          console.log('Audio can play - attempting to start...');
+
           // Start playing immediately (muted) - try autoplay
-          audio.play().catch(e => {
-            console.log('Autoplay prevented, will play on first interaction');
-            // If autoplay fails, play on first user interaction
-            const playOnInteraction = () => {
-              audio.play();
-              document.removeEventListener('click', playOnInteraction);
-            };
-            document.addEventListener('click', playOnInteraction);
-          });
+          audio.play()
+            .then(() => {
+              console.log('✅ Audio playing (muted) for visualization');
+            })
+            .catch(e => {
+              console.log('⚠️ Autoplay prevented, will play on first interaction', e);
+              // If autoplay fails, play on first user interaction
+              const playOnInteraction = () => {
+                audio.play().then(() => {
+                  console.log('✅ Audio started after user interaction');
+                });
+                document.removeEventListener('click', playOnInteraction);
+              };
+              document.addEventListener('click', playOnInteraction);
+            });
           
           // Create audio context and analyzer
           const audioContext = new (window.AudioContext || window.webkitAudioContext)();
           audioContextRef.current = audioContext;
-          
+          console.log('🎵 Audio context created, state:', audioContext.state);
+
           const analyser = audioContext.createAnalyser();
           analyser.fftSize = 512;
-          
+
           const source = audioContext.createMediaElementSource(audio);
           source.connect(analyser);
           analyser.connect(audioContext.destination);
-          
+
           analyserRef.current = analyser;
+          console.log('🎵 Audio analyzer connected and ready');
           
           const bufferLength = analyser.frequencyBinCount;
           const dataArray = new Uint8Array(bufferLength);
@@ -70,10 +80,18 @@ const Home = () => {
           canvas.height = canvas.offsetHeight * window.devicePixelRatio;
           canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
           
+          let frameCount = 0;
           const draw = () => {
             animationRef.current = requestAnimationFrame(draw);
-            
+
             analyser.getByteFrequencyData(dataArray);
+
+            // Log every 60 frames (roughly once per second) for debugging
+            if (frameCount % 60 === 0) {
+              const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+              console.log(`Frame ${frameCount}: avg frequency = ${avg.toFixed(2)}, soundOn = ${isSoundOnRef.current}`);
+            }
+            frameCount++;
             
             const width = canvas.offsetWidth;
             const height = canvas.offsetHeight;
