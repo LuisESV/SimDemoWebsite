@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+const MEDIA_URL = `${BACKEND_URL}/media`;
 
 const Home = () => {
   const canvasRef = useRef(null);
