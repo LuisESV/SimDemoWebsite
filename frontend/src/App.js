@@ -62,6 +62,13 @@ const Home = () => {
           audioContextRef.current = audioContext;
           console.log('🎵 Audio context created, state:', audioContext.state);
 
+          // Resume audio context if suspended
+          if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+              console.log('🎵 Audio context resumed');
+            });
+          }
+
           const analyser = audioContext.createAnalyser();
           analyser.fftSize = 512;
 
@@ -176,10 +183,23 @@ const Home = () => {
       // NOTE: audioRef (MP3) stays muted - it's only used for visualization
       // We only unmute the video to hear the actual sound
 
+      // Resume audio context if it's suspended (required for waves to work)
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+        console.log('🎵 Audio context resumed on user interaction');
+      }
+
+      // Start MP3 audio if not already playing (muted, for visualization only)
+      if (audioRef.current && audioRef.current.paused) {
+        await audioRef.current.play();
+        console.log('🎵 MP3 audio started (muted) for visualization');
+      }
+
       // Unmute and play video (this is the only audible sound)
       if (videoRef.current) {
         videoRef.current.muted = false;
         await videoRef.current.play();
+        console.log('🔊 Video audio unmuted');
       }
 
       // Update both state (for UI) and ref (for draw function to grow waves)
