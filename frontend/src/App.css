@@ -57,6 +57,52 @@ body, html {
   border: none;
 }
 
+/* Sound Button */
+.sound-button {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50px;
+  color: white;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  z-index: 100;
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 8px 32px rgba(255, 100, 200, 0.3);
+}
+
+.sound-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 12px 40px rgba(255, 100, 200, 0.5);
+}
+
+.sound-button svg {
+  width: 28px;
+  height: 28px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(255, 100, 200, 0.3);
+  }
+  50% {
+    box-shadow: 0 12px 40px rgba(255, 100, 200, 0.6);
+  }
+}
+
 /* Audio Section */
 .audio-canvas {
   width: 100%;
@@ -120,6 +166,18 @@ body, html {
   
   .audio-title {
     font-size: 2rem;
+  }
+  
+  .sound-button {
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .sound-button svg {
+    width: 24px;
+    height: 24px;
   }
 }
 

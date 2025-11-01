@@ -1,98 +1,150 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const MEDIA_URL = `${BACKEND_URL}/media`;
+
 const Home = () => {
   const canvasRef = useRef(null);
+  const audioRef = useRef(null);
+  const iframeRef = useRef(null);
   const animationRef = useRef(null);
+  const analyserRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const [isSoundOn, setIsSoundOn] = useState(false);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const initAudioVisualization = async () => {
+      try {
+        const audio = audioRef.current;
+        const canvas = canvasRef.current;
+        
+        if (!audio || !canvas) return;
+        
+        // Prevent duplicate initialization
+        if (audioContextRef.current) return;
 
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        // Set up audio source
+        audio.src = `${MEDIA_URL}/user_audio.mp3`;
+        audio.loop = true;
 
-    const width = canvas.offsetWidth;
-    const height = canvas.offsetHeight;
-    let time = 0;
-
-    // Create simulated frequency data
-    const barCount = 128;
-    const frequencyData = new Array(barCount).fill(0);
-
-    const draw = () => {
-      animationRef.current = requestAnimationFrame(draw);
-      time += 0.05;
-
-      // Clear with gradient background
-      const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, '#0a0a0a');
-      gradient.addColorStop(1, '#1a1a2e');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-
-      // Update simulated frequency data with smooth animation
-      for (let i = 0; i < barCount; i++) {
-        const targetValue = 
-          Math.sin(time * 0.5 + i * 0.1) * 0.3 +
-          Math.sin(time * 0.8 + i * 0.05) * 0.3 +
-          Math.sin(time * 1.2 + i * 0.02) * 0.2 +
-          0.2;
-        frequencyData[i] = Math.max(0, Math.min(1, targetValue));
+        // Create audio context and analyzer
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = audioContext;
+        
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        
+        const source = audioContext.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        
+        analyserRef.current = analyser;
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        const canvasCtx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+        canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+        canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        
+        const draw = () => {
+          animationRef.current = requestAnimationFrame(draw);
+          
+          analyser.getByteFrequencyData(dataArray);
+          
+          const width = canvas.offsetWidth;
+          const height = canvas.offsetHeight;
+          
+          // Clear with gradient background
+          const gradient = canvasCtx.createLinearGradient(0, 0, 0, height);
+          gradient.addColorStop(0, '#0a0a0a');
+          gradient.addColorStop(1, '#1a1a2e');
+          canvasCtx.fillStyle = gradient;
+          canvasCtx.fillRect(0, 0, width, height);
+          
+          // Draw audio waves
+          const barWidth = (width / bufferLength) * 2.5;
+          let x = 0;
+          
+          for (let i = 0; i < bufferLength; i++) {
+            const barHeight = (dataArray[i] / 255) * (height * 0.7);
+            
+            const hue = (i / bufferLength) * 360;
+            const barGradient = canvasCtx.createLinearGradient(0, height - barHeight, 0, height);
+            barGradient.addColorStop(0, `hsla(${hue}, 100%, 70%, 0.9)`);
+            barGradient.addColorStop(0.5, `hsla(${hue + 60}, 100%, 60%, 0.7)`);
+            barGradient.addColorStop(1, `hsla(${hue + 120}, 100%, 50%, 0.5)`);
+            
+            canvasCtx.fillStyle = barGradient;
+            canvasCtx.shadowBlur = 20;
+            canvasCtx.shadowColor = `hsla(${hue}, 100%, 60%, 0.8)`;
+            canvasCtx.fillRect(x, height - barHeight, barWidth, barHeight);
+            
+            x += barWidth + 2;
+          }
+          
+          canvasCtx.shadowBlur = 0;
+          
+          // Draw center circle pulse
+          const avgFrequency = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
+          const pulseRadius = (avgFrequency / 255) * 120 + 40;
+          
+          const circleGradient = canvasCtx.createRadialGradient(
+            width / 2, height / 2, 0,
+            width / 2, height / 2, pulseRadius
+          );
+          circleGradient.addColorStop(0, 'rgba(255, 100, 200, 0.3)');
+          circleGradient.addColorStop(0.5, 'rgba(100, 200, 255, 0.2)');
+          circleGradient.addColorStop(1, 'rgba(150, 100, 255, 0)');
+          
+          canvasCtx.fillStyle = circleGradient;
+          canvasCtx.beginPath();
+          canvasCtx.arc(width / 2, height / 2, pulseRadius, 0, 2 * Math.PI);
+          canvasCtx.fill();
+        };
+        
+        draw();
+        
+      } catch (error) {
+        console.error('Error initializing audio:', error);
       }
-
-      // Draw audio bars
-      const barWidth = (width / barCount) * 2.5;
-      let x = 0;
-
-      for (let i = 0; i < barCount; i++) {
-        const barHeight = frequencyData[i] * height * 0.7;
-
-        const hue = (i / barCount) * 360;
-        const barGradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
-        barGradient.addColorStop(0, `hsla(${hue}, 100%, 70%, 0.9)`);
-        barGradient.addColorStop(0.5, `hsla(${hue + 60}, 100%, 60%, 0.7)`);
-        barGradient.addColorStop(1, `hsla(${hue + 120}, 100%, 50%, 0.5)`);
-
-        ctx.fillStyle = barGradient;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.8)`;
-        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
-
-        x += barWidth + 2;
-      }
-
-      ctx.shadowBlur = 0;
-
-      // Draw center circle pulse
-      const avgFrequency = frequencyData.reduce((a, b) => a + b, 0) / barCount;
-      const pulseRadius = avgFrequency * 120 + 40;
-
-      const circleGradient = ctx.createRadialGradient(
-        width / 2, height / 2, 0,
-        width / 2, height / 2, pulseRadius
-      );
-      circleGradient.addColorStop(0, 'rgba(255, 100, 200, 0.3)');
-      circleGradient.addColorStop(0.5, 'rgba(100, 200, 255, 0.2)');
-      circleGradient.addColorStop(1, 'rgba(150, 100, 255, 0)');
-
-      ctx.fillStyle = circleGradient;
-      ctx.beginPath();
-      ctx.arc(width / 2, height / 2, pulseRadius, 0, 2 * Math.PI);
-      ctx.fill();
     };
 
-    draw();
+    initAudioVisualization();
 
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
     };
   }, []);
+
+  const handleTurnSoundOn = async () => {
+    try {
+      // Play audio file
+      if (audioRef.current) {
+        await audioRef.current.play();
+      }
+      
+      // Unmute YouTube video via postMessage
+      if (iframeRef.current) {
+        iframeRef.current.contentWindow.postMessage(
+          '{"event":"command","func":"unMute","args":""}',
+          '*'
+        );
+      }
+      
+      setIsSoundOn(true);
+    } catch (error) {
+      console.error('Error turning sound on:', error);
+    }
+  };
 
   return (
     <div className="landing-container" data-testid="landing-container">
@@ -100,14 +152,31 @@ const Home = () => {
         {/* Top Section - YouTube Video */}
         <div className="video-section" data-testid="video-section">
           <iframe
+            ref={iframeRef}
             className="youtube-player"
-            src="https://www.youtube.com/embed/r0JGfg7feU4?autoplay=1&mute=0&loop=1&playlist=r0JGfg7feU4&controls=1&modestbranding=1&rel=0"
+            src="https://www.youtube.com/embed/r0JGfg7feU4?autoplay=1&mute=1&loop=1&playlist=r0JGfg7feU4&controls=1&modestbranding=1&rel=0&enablejsapi=1"
             title="YouTube video player"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
             data-testid="youtube-player"
           ></iframe>
+          
+          {/* Turn Sound On Button */}
+          {!isSoundOn && (
+            <button 
+              className="sound-button" 
+              onClick={handleTurnSoundOn}
+              data-testid="sound-button"
+            >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+              </svg>
+              Turn Sound On
+            </button>
+          )}
         </div>
         
         {/* Bottom Section - Audio Waves */}
@@ -116,6 +185,7 @@ const Home = () => {
           <div className="audio-overlay" data-testid="audio-overlay">
             <h1 className="audio-title" data-testid="audio-title">Sound Waves</h1>
           </div>
+          <audio ref={audioRef} data-testid="audio-element"></audio>
         </div>
       </div>
     </div>
