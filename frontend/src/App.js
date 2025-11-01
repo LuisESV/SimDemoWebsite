@@ -113,7 +113,9 @@ const Home = () => {
           };
           
           draw();
-        }, { once: true });
+        };
+        
+        audio.addEventListener('canplay', handleCanPlay, { once: true });
         
       } catch (error) {
         console.error('Error initializing audio:', error);
