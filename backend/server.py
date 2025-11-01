@@ -85,7 +85,7 @@ async def get_audio():
 @api_router.get("/video")
 async def get_video(request: Request):
     """Serve the video file with range request support"""
-    video_path = MEDIA_DIR / 'sample_video.mp4'
+    video_path = MEDIA_DIR / 'final_video.mp4'
     
     if not video_path.exists():
         return {"error": "Video file not found"}
