@@ -7,7 +7,8 @@ const MEDIA_URL = `${BACKEND_URL}/media`;
 
 const Home = () => {
   const canvasRef = useRef(null);
-  const videoRef = useRef(null);
+  const audioRef = useRef(null);
+  const iframeRef = useRef(null);
   const animationRef = useRef(null);
   const analyserRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -16,16 +17,21 @@ const Home = () => {
   useEffect(() => {
     const initAudioVisualization = async () => {
       try {
-        const video = videoRef.current;
+        const audio = audioRef.current;
         const canvas = canvasRef.current;
         
-        if (!video || !canvas) return;
+        if (!audio || !canvas) return;
         
         // Prevent duplicate initialization
         if (audioContextRef.current) return;
 
-        // Wait for video to be ready
-        video.addEventListener('canplay', () => {
+        // Set up audio source
+        const API = `${BACKEND_URL}/api`;
+        audio.src = `${API}/audio`;
+        audio.loop = true;
+
+        // Wait for audio to be ready
+        audio.addEventListener('canplay', () => {
           // Create audio context and analyzer
           const audioContext = new (window.AudioContext || window.webkitAudioContext)();
           audioContextRef.current = audioContext;
@@ -33,7 +39,7 @@ const Home = () => {
           const analyser = audioContext.createAnalyser();
           analyser.fftSize = 512;
           
-          const source = audioContext.createMediaElementSource(video);
+          const source = audioContext.createMediaElementSource(audio);
           source.connect(analyser);
           analyser.connect(audioContext.destination);
           
