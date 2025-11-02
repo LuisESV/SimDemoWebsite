@@ -7,55 +7,34 @@ const MEDIA_URL = `${BACKEND_URL}/media`;
 
 const Home = () => {
   const canvasRef = useRef(null);
-  const audioRef = useRef(null);
   const videoRef = useRef(null);
   const animationRef = useRef(null);
   const analyserRef = useRef(null);
   const audioContextRef = useRef(null);
   const isSoundOnRef = useRef(false); // Ref for draw function to access current state
+  const recordedFrequencyData = useRef([]); // Store real frequency snapshots for fake playback
+  const recordingComplete = useRef(false); // Track if we've recorded enough data
   const [isSoundOn, setIsSoundOn] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     const initAudioVisualization = async () => {
       try {
-        const audio = audioRef.current;
+        const video = videoRef.current;
         const canvas = canvasRef.current;
-        
-        if (!audio || !canvas || !isMounted) return;
+
+        if (!video || !canvas || !isMounted) return;
         
         // Prevent duplicate initialization
         if (audioContextRef.current) return;
 
-        // Set up audio source - MUTED initially but playing
-        const API = `${BACKEND_URL}/api`;
-        audio.src = `${API}/audio`;
-        audio.loop = true;
-        audio.muted = true; // Muted but still playing for visualization
-        audio.volume = 1.0;
+        console.log('🎬 Initializing audio visualization from VIDEO element');
 
-        // Wait for audio to be ready
+        // Wait for video to be ready
         const handleCanPlay = () => {
           if (!isMounted) return;
 
-          console.log('Audio can play - attempting to start...');
-
-          // Start playing immediately (muted) - try autoplay
-          audio.play()
-            .then(() => {
-              console.log('✅ Audio playing (muted) for visualization');
-            })
-            .catch(e => {
-              console.log('⚠️ Autoplay prevented, will play on first interaction', e);
-              // If autoplay fails, play on first user interaction
-              const playOnInteraction = () => {
-                audio.play().then(() => {
-                  console.log('✅ Audio started after user interaction');
-                });
-                document.removeEventListener('click', playOnInteraction);
-              };
-              document.addEventListener('click', playOnInteraction);
-            });
+          console.log('🎬 Video ready for audio analysis');
           
           // Create audio context and analyzer
           const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -72,12 +51,13 @@ const Home = () => {
           const analyser = audioContext.createAnalyser();
           analyser.fftSize = 512;
 
-          const source = audioContext.createMediaElementSource(audio);
+          // Connect to VIDEO audio (not MP3) since video has been playing from start
+          const source = audioContext.createMediaElementSource(video);
           source.connect(analyser);
           analyser.connect(audioContext.destination);
 
           analyserRef.current = analyser;
-          console.log('🎵 Audio analyzer connected and ready');
+          console.log('🎵 Audio analyzer connected to VIDEO element');
           
           const bufferLength = analyser.frequencyBinCount;
           const dataArray = new Uint8Array(bufferLength);
@@ -88,28 +68,50 @@ const Home = () => {
           canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
           
           let frameCount = 0;
+          const RECORDING_FRAMES = 1800; // Record ~30 seconds at 60fps
+
           const draw = () => {
             animationRef.current = requestAnimationFrame(draw);
 
             // Check if we can use real audio data or need to use fake data
-            const canUseRealAudio = audioContext.state === 'running' && !audio.paused;
+            // Video is always playing, but we need audio context to be running
+            const canUseRealAudio = audioContext.state === 'running';
 
             if (canUseRealAudio) {
-              // Use REAL audio frequency data
+              // Use REAL audio frequency data from video
               analyser.getByteFrequencyData(dataArray);
-            } else {
-              // Generate FAKE/simulated audio data for smooth animation
-              // Use sine waves with some randomness for natural-looking movement
-              const time = Date.now() / 1000; // time in seconds
-              for (let i = 0; i < bufferLength; i++) {
-                // Combine multiple sine waves for more natural variation
-                const wave1 = Math.sin(time * 2 + i * 0.1) * 40;
-                const wave2 = Math.sin(time * 3.5 + i * 0.05) * 30;
-                const wave3 = Math.sin(time * 1.2 + i * 0.15) * 25;
-                const noise = Math.random() * 15;
 
-                // Base level + waves + noise (range: ~50-140)
-                dataArray[i] = Math.max(0, Math.min(255, 70 + wave1 + wave2 + wave3 + noise));
+              // Record frequency data for future "fake" playback (first 30 seconds)
+              if (!recordingComplete.current && frameCount < RECORDING_FRAMES) {
+                // Store a copy of current frequency data
+                recordedFrequencyData.current.push(new Uint8Array(dataArray));
+
+                if (frameCount === RECORDING_FRAMES - 1) {
+                  recordingComplete.current = true;
+                  console.log(`📼 Recorded ${RECORDING_FRAMES} frames of real audio data for playback`);
+                }
+              }
+            } else {
+              // Use RECORDED real audio data if available, otherwise use synthetic
+              if (recordedFrequencyData.current.length > 0) {
+                // Loop through recorded real data
+                const recordedIndex = frameCount % recordedFrequencyData.current.length;
+                const recordedFrame = recordedFrequencyData.current[recordedIndex];
+
+                // Copy recorded data to current dataArray
+                for (let i = 0; i < bufferLength; i++) {
+                  dataArray[i] = recordedFrame[i];
+                }
+              } else {
+                // Fallback: Generate synthetic data (only used before any recording exists)
+                const time = Date.now() / 1000;
+                for (let i = 0; i < bufferLength; i++) {
+                  const wave1 = Math.sin(time * 2 + i * 0.1) * 40;
+                  const wave2 = Math.sin(time * 3.5 + i * 0.05) * 30;
+                  const wave3 = Math.sin(time * 1.2 + i * 0.15) * 25;
+                  const noise = Math.random() * 15;
+                  dataArray[i] = Math.max(0, Math.min(255, 70 + wave1 + wave2 + wave3 + noise));
+                }
               }
             }
 
@@ -117,11 +119,20 @@ const Home = () => {
             if (frameCount % 60 === 0) {
               const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
               const max = Math.max(...dataArray);
+
+              let dataSource = 'synthetic';
+              if (canUseRealAudio) {
+                dataSource = 'real-time';
+              } else if (recordedFrequencyData.current.length > 0) {
+                dataSource = 'recorded';
+              }
+
               console.log(`Frame ${frameCount}:`, {
                 avgFreq: avg.toFixed(2),
                 maxFreq: max,
                 soundOn: isSoundOnRef.current,
-                usingRealAudio: canUseRealAudio,
+                dataSource,
+                recordedFrames: recordedFrequencyData.current.length,
                 contextState: audioContext.state
               });
             }
@@ -185,7 +196,7 @@ const Home = () => {
           draw();
         };
         
-        audio.addEventListener('canplay', handleCanPlay, { once: true });
+        video.addEventListener('canplay', handleCanPlay, { once: true });
         
       } catch (error) {
         console.error('Error initializing audio:', error);
@@ -207,34 +218,13 @@ const Home = () => {
 
   const handleTurnSoundOn = async () => {
     try {
-      // NOTE: audioRef (MP3) stays muted - it's only used for visualization
-      // We only unmute the video to hear the actual sound
-
-      // Resume audio context if it's suspended (required for waves to work)
+      // Resume audio context if it's suspended (required for real audio visualization)
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume();
-        console.log('🎵 Audio context resumed on user interaction');
+        console.log('🎵 Audio context resumed - switching to real video audio data');
       }
 
-      // Start MP3 audio if not already playing (muted, for visualization only)
-      if (audioRef.current) {
-        console.log('🎵 MP3 audio state:', {
-          paused: audioRef.current.paused,
-          muted: audioRef.current.muted,
-          currentTime: audioRef.current.currentTime,
-          duration: audioRef.current.duration,
-          src: audioRef.current.src
-        });
-
-        if (audioRef.current.paused) {
-          await audioRef.current.play();
-          console.log('🎵 MP3 audio started (muted) for visualization');
-        } else {
-          console.log('🎵 MP3 audio already playing');
-        }
-      }
-
-      // Unmute and play video (this is the only audible sound)
+      // Unmute video to hear the sound
       if (videoRef.current) {
         videoRef.current.muted = false;
         await videoRef.current.play();
@@ -247,6 +237,33 @@ const Home = () => {
     } catch (error) {
       console.error('Error turning sound on:', error);
     }
+  };
+
+  const handleExportRecordedData = () => {
+    if (recordedFrequencyData.current.length === 0) {
+      alert('No recorded data yet! Please click "Turn Sound On" and wait 30 seconds.');
+      return;
+    }
+
+    // Convert Uint8Array frames to regular arrays for JSON serialization
+    const exportData = recordedFrequencyData.current.map(frame => Array.from(frame));
+
+    // Create downloadable JSON file
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+
+    // Trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'recorded-frequency-data.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log(`📥 Downloaded ${recordedFrequencyData.current.length} frames of frequency data`);
+    alert(`Downloaded ${recordedFrequencyData.current.length} frames! Save this file to frontend/src/data/`);
   };
 
   return (
@@ -269,8 +286,8 @@ const Home = () => {
           
           {/* Turn Sound On Button */}
           {!isSoundOn && (
-            <button 
-              className="sound-button" 
+            <button
+              className="sound-button"
               onClick={handleTurnSoundOn}
               data-testid="sound-button"
             >
@@ -282,6 +299,28 @@ const Home = () => {
               Turn Sound On
             </button>
           )}
+
+          {/* Temporary button for recording data - remove after recording */}
+          {recordingComplete.current && (
+            <button
+              onClick={handleExportRecordedData}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                padding: '12px 24px',
+                background: '#00ff88',
+                color: '#000',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                zIndex: 1000
+              }}
+            >
+              📥 Download Recorded Data
+            </button>
+          )}
         </div>
         
         {/* Bottom Section - Audio Waves */}
@@ -290,7 +329,6 @@ const Home = () => {
           <div className="audio-overlay" data-testid="audio-overlay">
             <h1 className="audio-title" data-testid="audio-title">Sound Waves</h1>
           </div>
-          <audio ref={audioRef} data-testid="audio-element"></audio>
         </div>
       </div>
     </div>
