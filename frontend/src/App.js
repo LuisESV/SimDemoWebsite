@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import preRecordedData from "@/data/recorded-frequency-data.json";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const MEDIA_URL = `${BACKEND_URL}/media`;
@@ -17,6 +18,13 @@ const Home = () => {
   const [isSoundOn, setIsSoundOn] = useState(false);
 
   useEffect(() => {
+    // Load pre-recorded data immediately on mount
+    if (preRecordedData && preRecordedData.length > 0) {
+      recordedFrequencyData.current = preRecordedData.map(frame => new Uint8Array(frame));
+      recordingComplete.current = true;
+      console.log(`📼 Loaded ${preRecordedData.length} pre-recorded frequency frames from file`);
+    }
+
     let isMounted = true;
     const initAudioVisualization = async () => {
       try {
@@ -24,7 +32,7 @@ const Home = () => {
         const canvas = canvasRef.current;
 
         if (!video || !canvas || !isMounted) return;
-        
+
         // Prevent duplicate initialization
         if (audioContextRef.current) return;
 
@@ -68,7 +76,6 @@ const Home = () => {
           canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
           
           let frameCount = 0;
-          const RECORDING_FRAMES = 1800; // Record ~30 seconds at 60fps
 
           const draw = () => {
             animationRef.current = requestAnimationFrame(draw);
@@ -80,55 +87,15 @@ const Home = () => {
             if (canUseRealAudio) {
               // Use REAL audio frequency data from video
               analyser.getByteFrequencyData(dataArray);
-
-              // Record frequency data for future "fake" playback (first 30 seconds)
-              if (!recordingComplete.current && frameCount < RECORDING_FRAMES) {
-                // Store a copy of current frequency data
-                recordedFrequencyData.current.push(new Uint8Array(dataArray));
-
-                if (frameCount === RECORDING_FRAMES - 1) {
-                  recordingComplete.current = true;
-                  console.log(`📼 Recorded ${RECORDING_FRAMES} frames of real audio data for playback`);
-                  console.log(`📥 To download the data, run in console: window.downloadRecordedData()`);
-
-                  // Make download function globally accessible
-                  window.downloadRecordedData = () => {
-                    const exportData = recordedFrequencyData.current.map(frame => Array.from(frame));
-                    const dataStr = JSON.stringify(exportData, null, 2);
-                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(dataBlob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'recorded-frequency-data.json';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    console.log(`✅ Downloaded ${recordedFrequencyData.current.length} frames!`);
-                  };
-                }
-              }
             } else {
-              // Use RECORDED real audio data if available, otherwise use synthetic
-              if (recordedFrequencyData.current.length > 0) {
-                // Loop through recorded real data
-                const recordedIndex = frameCount % recordedFrequencyData.current.length;
-                const recordedFrame = recordedFrequencyData.current[recordedIndex];
+              // Use pre-recorded real video audio data (loaded from JSON file)
+              // Loop through the 1800 frames (~30 seconds) of real frequency data
+              const recordedIndex = frameCount % recordedFrequencyData.current.length;
+              const recordedFrame = recordedFrequencyData.current[recordedIndex];
 
-                // Copy recorded data to current dataArray
-                for (let i = 0; i < bufferLength; i++) {
-                  dataArray[i] = recordedFrame[i];
-                }
-              } else {
-                // Fallback: Generate synthetic data (only used before any recording exists)
-                const time = Date.now() / 1000;
-                for (let i = 0; i < bufferLength; i++) {
-                  const wave1 = Math.sin(time * 2 + i * 0.1) * 40;
-                  const wave2 = Math.sin(time * 3.5 + i * 0.05) * 30;
-                  const wave3 = Math.sin(time * 1.2 + i * 0.15) * 25;
-                  const noise = Math.random() * 15;
-                  dataArray[i] = Math.max(0, Math.min(255, 70 + wave1 + wave2 + wave3 + noise));
-                }
+              // Copy recorded data to current dataArray
+              for (let i = 0; i < bufferLength; i++) {
+                dataArray[i] = recordedFrame[i];
               }
             }
 
@@ -137,19 +104,11 @@ const Home = () => {
               const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
               const max = Math.max(...dataArray);
 
-              let dataSource = 'synthetic';
-              if (canUseRealAudio) {
-                dataSource = 'real-time';
-              } else if (recordedFrequencyData.current.length > 0) {
-                dataSource = 'recorded';
-              }
-
               console.log(`Frame ${frameCount}:`, {
                 avgFreq: avg.toFixed(2),
                 maxFreq: max,
                 soundOn: isSoundOnRef.current,
-                dataSource,
-                recordedFrames: recordedFrequencyData.current.length,
+                usingRealTimeAudio: canUseRealAudio,
                 contextState: audioContext.state
               });
             }
