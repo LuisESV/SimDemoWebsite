@@ -89,6 +89,23 @@ const Home = () => {
                 if (frameCount === RECORDING_FRAMES - 1) {
                   recordingComplete.current = true;
                   console.log(`📼 Recorded ${RECORDING_FRAMES} frames of real audio data for playback`);
+                  console.log(`📥 To download the data, run in console: window.downloadRecordedData()`);
+
+                  // Make download function globally accessible
+                  window.downloadRecordedData = () => {
+                    const exportData = recordedFrequencyData.current.map(frame => Array.from(frame));
+                    const dataStr = JSON.stringify(exportData, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'recorded-frequency-data.json';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    console.log(`✅ Downloaded ${recordedFrequencyData.current.length} frames!`);
+                  };
                 }
               }
             } else {
@@ -239,33 +256,6 @@ const Home = () => {
     }
   };
 
-  const handleExportRecordedData = () => {
-    if (recordedFrequencyData.current.length === 0) {
-      alert('No recorded data yet! Please click "Turn Sound On" and wait 30 seconds.');
-      return;
-    }
-
-    // Convert Uint8Array frames to regular arrays for JSON serialization
-    const exportData = recordedFrequencyData.current.map(frame => Array.from(frame));
-
-    // Create downloadable JSON file
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-
-    // Trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'recorded-frequency-data.json';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    console.log(`📥 Downloaded ${recordedFrequencyData.current.length} frames of frequency data`);
-    alert(`Downloaded ${recordedFrequencyData.current.length} frames! Save this file to frontend/src/data/`);
-  };
-
   return (
     <div className="landing-container" data-testid="landing-container">
       <div className="top-bottom-layout" data-testid="top-bottom-layout">
@@ -297,28 +287,6 @@ const Home = () => {
                 <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
               </svg>
               Turn Sound On
-            </button>
-          )}
-
-          {/* Temporary button for recording data - remove after recording */}
-          {recordingComplete.current && (
-            <button
-              onClick={handleExportRecordedData}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                padding: '12px 24px',
-                background: '#00ff88',
-                color: '#000',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                zIndex: 1000
-              }}
-            >
-              📥 Download Recorded Data
             </button>
           )}
         </div>
